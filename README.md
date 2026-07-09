@@ -1,56 +1,58 @@
-# Generatore cartellini A6
+# Webapp Cartellini A6
 
-## Versione web
+Questa cartella contiene una prima versione statica del generatore.
+Funziona nel browser e usa SheetJS locale per leggere file Excel.
+In alternativa puoi usare la modalita manuale per compilare uno o piu
+cartellini A6 con titolo, varianti e prezzi.
 
-La versione web e' in `webapp/` ed e' una app statica: non richiede backend
-o build. `index.html` nella root reindirizza automaticamente a `webapp/`, cosi
-GitHub Pages puo' aprire l'app direttamente dalla root del sito.
+## Prova locale
 
-Per provarla in locale, apri:
-
-```text
-webapp/index.html
-```
-
-Oppure, dopo la pubblicazione con GitHub Pages:
-
-```text
-https://killato122.github.io/Generatore-Cartellini-a6/
-```
+Apri `webapp/index.html` nel browser, carica un Excel e premi
+`Genera HTML`. Per creare cartellini senza Excel, passa a `Manuale`,
+inserisci uno o piu cartellini con titolo e prezzi, poi genera o stampa.
 
 ## Pubblicazione GitHub Pages
 
-1. Pusha il repository su GitHub.
-2. Apri `Settings > Pages` nella repository GitHub.
-3. In `Build and deployment`, scegli `Deploy from a branch`.
-4. Seleziona il branch `main` e la cartella `/(root)`.
-5. Salva. La pubblicazione puo' richiedere qualche minuto.
+Opzione semplice:
 
-## File da usare
+1. Metti il repository su GitHub.
+2. Vai in `Settings > Pages`.
+3. Seleziona `Deploy from a branch`.
+4. Scegli il branch e la cartella `/`.
+5. Apri l'URL GitHub Pages e vai a `/webapp/`.
 
-Avviare:
+Se vuoi che la webapp sia direttamente nella root del sito Pages, puoi
+spostare questi file in una cartella `docs/` e selezionare `/docs` come
+sorgente Pages.
 
-```powershell
-python genera_cartellini.py
-```
+## Note
 
-Questo file e' un launcher. Il codice principale dell'applicazione e' in:
+- I file Excel vengono letti nel browser.
+- L'output e' HTML A6 stampabile, come nella versione Python.
+- La modalita manuale crea uno o piu cartellini, ciascuno con una o piu varianti.
+- Il menu `Negozio` imposta automaticamente il bollino destro.
+  La scelta negozio e' mostrata come pulsanti grandi per ridurre errori.
+- Il toggle `Cartellino saldi` usa i bollini saldi disponibili.
+  Per `Iconico + Saldi` viene usato un bollino saldi disponibile come fallback,
+  perche' non c'e' ancora un asset saldi Iconico dedicato.
+- `Nuovo lavoro` pulisce file, manuale, anteprima e HTML generato, ma mantiene
+  negozio, saldi e logo.
+- L'anteprima e' navigabile con precedente/successivo.
+- Puoi cercare un prodotto nell'anteprima con il campo `Cerca prodotto`.
+- In modalita manuale i campi errati vengono evidenziati in rosso.
+- Dopo una modifica, `Stampa` e `Scarica` restano disabilitati finche'
+  non premi di nuovo `Genera HTML`.
+- Dopo il caricamento Excel viene mostrato un riepilogo con prodotti,
+  varianti, righe lette e righe ignorate.
+- Il logo sinistro `logo_lisolastore.png` e i bollini destri possono essere scelti dagli asset
+  inclusi in `assets/images/`, oppure caricati manualmente dalla pagina.
+- La libreria Excel e' inclusa in `webapp/vendor/xlsx.full.min.js`.
 
-```text
-src/generatore_cartellini.py
-```
+## Aggiungere altri preset immagine
 
-Le immagini sono in `assets/images/`, le immagini saldi in
-`assets/images/saldi/`, e i file Excel di esempio/input in `data/`.
+Per aggiungere un nuovo logo o bollino fisso:
 
-## Build eseguibile
-
-Per ricreare l'eseguibile con PyInstaller:
-
-```powershell
-pyinstaller GeneraCartellini.spec
-```
-
-Le cartelle `build/`, `dist/`, `.venv/`, `__pycache__/` e
-`cartellini_A6_output/` sono ignorate da Git perche' sono ambiente locale
-o output rigenerabili.
+1. Metti il file immagine in `assets/images/`.
+2. Aggiungi una voce in `BUILT_IN_IMAGES` dentro `webapp/app.js`.
+3. Imposta `kind: "logo"` per il logo sinistro oppure `kind: "badge"`
+   per i bollini.
