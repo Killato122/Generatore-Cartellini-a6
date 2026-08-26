@@ -364,6 +364,9 @@ function bindEvents() {
     savePreferences();
     markGeneratedDirty();
     updatePreview();
+    if (els.logoOnly.checked && !state.products.length) {
+      setStatus("Modalita solo loghi attiva: puoi generare senza caricare dati.");
+    }
   });
   els.leftLogoPreset.addEventListener("change", () => applyImagePreset("left", els.leftLogoPreset.value));
   els.rightLogoPreset.addEventListener("change", () => applyImagePreset("right", els.rightLogoPreset.value));
@@ -1123,7 +1126,8 @@ function assetUrl(src) {
 }
 
 function generateHtml() {
-  if (state.sourceMode === "manual") {
+  const logoOnly = els.logoOnly.checked;
+  if (state.sourceMode === "manual" && !logoOnly) {
     const validation = validateManualProducts({ showErrors: true });
     state.manualHasErrors = validation.errorCount > 0;
     if (state.manualHasErrors) {
@@ -1133,16 +1137,17 @@ function generateHtml() {
       return;
     }
   }
-  if (!state.products.length) {
+  if (!state.products.length && !logoOnly) {
     setStatus("Nessun prodotto valido da generare.", true);
     return;
   }
-  state.generatedHtml = renderPrintHtml(state.products, {
+  const printableProducts = state.products.length ? state.products : [null];
+  state.generatedHtml = renderPrintHtml(printableProducts, {
     leftLogo: state.leftLogo,
     rightLogo: state.rightLogo,
     leftLogoWidthMm: state.leftLogoWidthMm,
     rightLogoWidthMm: state.rightLogoWidthMm,
-    logoOnly: els.logoOnly.checked,
+    logoOnly,
     includePrintButton: true,
   });
   updateUi();
@@ -1251,11 +1256,13 @@ function outputFileName() {
 
 function updateUi() {
   const variants = state.products.reduce((sum, product) => sum + product.variants.length, 0);
+  const logoOnly = els.logoOnly.checked;
   clampPreviewIndex();
   els.productsCount.textContent = String(state.products.length);
   els.variantsCount.textContent = String(variants);
   els.sheetName.textContent = state.sourceMode === "manual" ? "Manuale" : (state.sheetName || "-");
-  els.generateBtn.disabled = !state.products.length || state.manualHasErrors;
+  els.generateBtn.disabled = (!state.products.length && !logoOnly)
+    || (state.manualHasErrors && !logoOnly);
   const hasGeneratedHtml = Boolean(state.generatedHtml);
   els.printBtn.disabled = !hasGeneratedHtml;
   els.downloadBtn.disabled = !hasGeneratedHtml;
@@ -1265,7 +1272,7 @@ function updateUi() {
   els.previewNext.disabled = state.previewIndex >= state.products.length - 1;
   els.previewCounter.textContent = state.products.length
     ? `${state.previewIndex + 1} di ${state.products.length}`
-    : "0 di 0";
+    : (logoOnly ? "1 di 1" : "0 di 0");
   if (state.columns.length) {
     const previewColumns = state.columns.slice(0, 8).join(", ");
     els.fileMeta.textContent = state.columns.length > 8 ? `${previewColumns}...` : previewColumns;
@@ -1275,19 +1282,21 @@ function updateUi() {
 }
 
 function updatePreview() {
-  if (!state.products.length) {
+  const logoOnly = els.logoOnly.checked;
+  if (!state.products.length && !logoOnly) {
     els.previewFrame.removeAttribute("srcdoc");
     els.emptyPreview.classList.remove("is-hidden");
     els.previewCounter.textContent = "0 di 0";
     return;
   }
   clampPreviewIndex();
-  const html = renderPrintHtml([state.products[state.previewIndex]], {
+  const previewProduct = state.products.length ? state.products[state.previewIndex] : null;
+  const html = renderPrintHtml([previewProduct], {
     leftLogo: state.leftLogo,
     rightLogo: state.rightLogo,
     leftLogoWidthMm: state.leftLogoWidthMm,
     rightLogoWidthMm: state.rightLogoWidthMm,
-    logoOnly: els.logoOnly.checked,
+    logoOnly,
     includePrintButton: false,
     previewMode: true,
   });
