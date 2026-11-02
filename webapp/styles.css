@@ -267,6 +267,59 @@ select {
   background: var(--surface-soft);
 }
 
+.stock-filter-panel {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.stock-filter-panel.is-hidden {
+  display: none;
+}
+
+.stock-filter-summary {
+  font-weight: 800;
+}
+
+.stock-filter-column {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.stock-excluded-details {
+  margin-top: 2px;
+}
+
+.stock-excluded-details summary {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 800;
+  list-style-position: inside;
+}
+
+.stock-excluded-list {
+  display: grid;
+  gap: 5px;
+  max-height: 170px;
+  margin: 0 0 10px;
+  padding: 0 0 0 18px;
+  overflow: auto;
+  color: var(--text);
+}
+
+.stock-excluded-list li {
+  overflow-wrap: anywhere;
+}
+
 .field {
   display: grid;
   gap: 6px;
@@ -454,6 +507,39 @@ body.sale-active .sale-banner {
   display: flex;
 }
 
+.black-friday-toggle {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid #282828;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #303030, #090909);
+  color: #ecd27b;
+  font-weight: 900;
+}
+
+.black-friday-toggle input {
+  accent-color: #d5b657;
+}
+
+.black-friday-banner {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  margin: 8px 0;
+  border: 1px solid #b8963f;
+  border-radius: 8px;
+  background: #111;
+  color: #ecd27b;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+body.black-friday-active .black-friday-banner {
+  display: flex;
+}
+
 .check-row {
   display: flex;
   align-items: center;
@@ -524,6 +610,16 @@ body.sale-active .button.primary {
 
 body.sale-active .button.primary:hover:not(:disabled) {
   background: var(--danger-strong);
+}
+
+body.black-friday-active .button.primary {
+  background: #111;
+  border-color: #111;
+  color: #ecd27b;
+}
+
+body.black-friday-active .button.primary:hover:not(:disabled) {
+  background: #2b2b2b;
 }
 
 .button.secondary,

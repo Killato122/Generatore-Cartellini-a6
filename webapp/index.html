@@ -78,6 +78,18 @@
             <span>Seleziona Excel</span>
           </label>
           <div class="file-meta" id="fileMeta">Colonne richieste: Title, Variant Price</div>
+          <div class="stock-filter-panel is-hidden" id="stockFilterPanel" aria-live="polite">
+            <div class="stock-filter-summary" id="stockFilterSummary"></div>
+            <div class="stock-filter-column" id="stockFilterColumn"></div>
+            <details class="stock-excluded-details" id="stockExcludedDetails">
+              <summary>Prodotti esclusi</summary>
+              <ul class="stock-excluded-list" id="stockExcludedList"></ul>
+              <button class="button secondary full" id="downloadExcludedBtn" type="button">
+                <svg class="icon"><use href="#icon-download"></use></svg>
+                <span>Scarica lista esclusi</span>
+              </button>
+            </details>
+          </div>
           <button class="button secondary full" id="templateBtn" type="button">
             <svg class="icon"><use href="#icon-file"></use></svg>
             <span>Scarica modello Excel</span>
@@ -117,6 +129,11 @@
           <span>Cartellino saldi</span>
         </label>
         <div class="sale-banner">SALDI ATTIVI</div>
+        <label class="check-row black-friday-toggle">
+          <input id="blackFridayMode" type="checkbox">
+          <span>Cartellino Black Friday</span>
+        </label>
+        <div class="black-friday-banner">BLACK FRIDAY ATTIVO</div>
         <label class="check-row">
           <input id="discountPercent" type="checkbox" checked>
           <span>Mostra percentuale sconto</span>

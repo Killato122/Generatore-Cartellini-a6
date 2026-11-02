@@ -101,6 +101,14 @@ const BUILT_IN_IMAGES = [
     height: 2295,
   },
   {
+    id: "badge-black-friday",
+    kind: "badge",
+    label: "Bollino Black Friday",
+    src: "../assets/images/bollone_BF.png",
+    width: 2001,
+    height: 2001,
+  },
+  {
     id: "badge-volta",
     kind: "badge",
     label: "Bollino Volta",
@@ -178,12 +186,28 @@ const STORE_BADGES = {
   },
 };
 
+const STORE_INVENTORY_FILTERS = {
+  belfiore: {
+    label: "Belfiore",
+    hints: ["belfiore"],
+  },
+  volta: {
+    label: "Volta",
+    hints: ["via volta", "brera", "volta"],
+  },
+  piave: {
+    label: "Piave",
+    hints: ["viale piave", "porta venezia", "piave"],
+  },
+};
+
 const state = {
   sourceMode: "excel",
   rows: [],
   columns: [],
   sheetName: "",
   products: [],
+  stockFilter: null,
   previewIndex: 0,
   manualHasErrors: false,
   fileName: "",
@@ -216,7 +240,9 @@ function bindElements() {
   for (const id of [
     "sourceExcelBtn", "sourceManualBtn", "excelSection", "manualSection",
     "manualProducts", "addManualProduct", "excelInput", "dropzone",
-    "fileMeta", "templateBtn", "storePicker", "storeSelect", "saleMode", "storeBadgeName",
+    "fileMeta", "stockFilterPanel", "stockFilterSummary", "stockFilterColumn",
+    "stockExcludedDetails", "stockExcludedList", "downloadExcludedBtn",
+    "templateBtn", "storePicker", "storeSelect", "saleMode", "blackFridayMode", "storeBadgeName",
     "orderSelect", "discountPercent",
     "logoOnly", "leftLogoPreset", "rightLogoPreset", "leftLogoInput", "leftLogoBtn",
     "clearLeftLogo", "leftLogoName", "rightLogoInput", "rightLogoBtn",
@@ -342,10 +368,24 @@ function bindEvents() {
   });
   els.saleMode.addEventListener("change", () => {
     if (els.saleMode.checked) {
+      els.blackFridayMode.checked = false;
       els.discountPercent.checked = true;
       rebuildCurrentProducts({ quiet: true });
     }
-    updateSaleVisualState();
+    updatePromotionVisualState();
+    els.rightLogoPreset.value = "__auto__";
+    applyStoreBadge();
+    savePreferences();
+    markGeneratedDirty();
+    updatePreview();
+  });
+  els.blackFridayMode.addEventListener("change", () => {
+    if (els.blackFridayMode.checked) {
+      els.saleMode.checked = false;
+      els.discountPercent.checked = true;
+      rebuildCurrentProducts({ quiet: true });
+    }
+    updatePromotionVisualState();
     els.rightLogoPreset.value = "__auto__";
     applyStoreBadge();
     savePreferences();
@@ -382,6 +422,7 @@ function bindEvents() {
   els.generateBtn.addEventListener("click", generateHtml);
   els.printBtn.addEventListener("click", openPrintWindow);
   els.downloadBtn.addEventListener("click", downloadGeneratedHtml);
+  els.downloadExcludedBtn.addEventListener("click", downloadExcludedProducts);
   els.previewSearchBtn.addEventListener("click", searchPreviewProduct);
   els.previewSearch.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -399,7 +440,9 @@ function restorePreferences() {
     if (prefs.order === "asc" || prefs.order === "desc") els.orderSelect.value = prefs.order;
     if (isKnownStore(prefs.storeCode)) els.storeSelect.value = prefs.storeCode;
     if (typeof prefs.saleMode === "boolean") els.saleMode.checked = prefs.saleMode;
-    updateSaleVisualState();
+    if (typeof prefs.blackFridayMode === "boolean") els.blackFridayMode.checked = prefs.blackFridayMode;
+    if (els.blackFridayMode.checked) els.saleMode.checked = false;
+    updatePromotionVisualState();
     if (typeof prefs.discountPercent === "boolean") els.discountPercent.checked = prefs.discountPercent;
     if (typeof prefs.logoOnly === "boolean") els.logoOnly.checked = prefs.logoOnly;
     const leftPreset = normalizeStoredPreset(prefs.leftLogoPreset, "logo", "logo-store");
@@ -411,7 +454,7 @@ function restorePreferences() {
     setSourceMode(prefs.sourceMode === "manual" ? "manual" : "excel", { quiet: true });
   } catch {
     updateStoreButtons();
-    updateSaleVisualState();
+    updatePromotionVisualState();
     applyImagePreset("left", "logo-store", { quiet: true });
     applyImagePreset("right", "__auto__", { quiet: true });
     setSourceMode("excel", { quiet: true });
@@ -423,6 +466,7 @@ function savePreferences() {
     sourceMode: state.sourceMode,
     storeCode: els.storeSelect.value,
     saleMode: els.saleMode.checked,
+    blackFridayMode: els.blackFridayMode.checked,
     order: els.orderSelect.value,
     discountPercent: els.discountPercent.checked,
     logoOnly: els.logoOnly.checked,
@@ -456,8 +500,12 @@ function setStoreCode(code) {
   els.rightLogoPreset.value = "__auto__";
   applyStoreBadge();
   savePreferences();
-  markGeneratedDirty();
-  updatePreview();
+  if (state.sourceMode === "excel") {
+    rebuildProducts();
+  } else {
+    markGeneratedDirty();
+    updatePreview();
+  }
 }
 
 function updateStoreButtons() {
@@ -469,8 +517,9 @@ function updateStoreButtons() {
   });
 }
 
-function updateSaleVisualState() {
+function updatePromotionVisualState() {
   document.body.classList.toggle("sale-active", Boolean(els.saleMode.checked));
+  document.body.classList.toggle("black-friday-active", Boolean(els.blackFridayMode.checked));
 }
 
 function builtInImageById(id) {
@@ -492,7 +541,10 @@ function applyStoreLogo() {
 
 function applyStoreBadge() {
   const store = STORE_BADGES[els.storeSelect.value] || STORE_BADGES.volta;
-  const badgeId = els.saleMode.checked ? store.sale : store.normal;
+  const blackFriday = els.blackFridayMode.checked;
+  const badgeId = blackFriday
+    ? "badge-black-friday"
+    : (els.saleMode.checked ? store.sale : store.normal);
   if (!badgeId) {
     setCurrentImage("right", null, LOGO_MAX_WIDTH_MM, "Nessun bollino");
     els.storeBadgeName.textContent = "Bollino: nessuno";
@@ -511,7 +563,9 @@ function applyStoreBadge() {
     logoWidthFromDimensions(asset.width, asset.height),
     asset.label,
   );
-  els.storeBadgeName.textContent = `Bollino: ${store.label}${suffix}`;
+  els.storeBadgeName.textContent = blackFriday
+    ? "Bollino: Black Friday"
+    : `Bollino: ${store.label}${suffix}`;
 }
 
 function setSourceMode(mode, options = {}) {
@@ -825,6 +879,7 @@ function resetWork() {
   state.sheetName = "";
   state.fileName = "";
   state.products = [];
+  state.stockFilter = null;
   state.generatedHtml = "";
   els.excelInput.value = "";
   els.fileMeta.textContent = "Colonne richieste: Title, Variant Price";
@@ -858,17 +913,19 @@ async function loadExcelFile(file) {
       const ignoredText = excelReport.ignored
         ? ` Righe ignorate: ${excelReport.ignored} (${excelReport.ignoredReasons.join(", ")}).`
         : " Nessuna riga ignorata.";
-      setStatus(`Excel caricato: ${state.products.length} prodotti, ${variants} varianti. Righe lette: ${excelReport.total}.${ignoredText}`);
+      const stockText = stockFilterStatusText(state.stockFilter);
+      setStatus(`Excel caricato: ${state.products.length} prodotti, ${variants} varianti. Righe lette: ${excelReport.total}.${ignoredText}${stockText ? ` ${stockText}` : ""}`);
     }
     markGeneratedDirty();
     updateUi();
     updatePreview();
   } catch (error) {
     state.rows = [];
-  state.products = [];
-  state.generatedHtml = "";
-  state.previewIndex = 0;
-  state.manualHasErrors = false;
+    state.products = [];
+    state.stockFilter = null;
+    state.generatedHtml = "";
+    state.previewIndex = 0;
+    state.manualHasErrors = false;
     updateUi();
     updatePreview();
     setStatus(error.message || String(error), true);
@@ -954,6 +1011,7 @@ function rebuildProducts(options = {}) {
   state.manualHasErrors = false;
   if (!state.rows.length) {
     state.products = [];
+    state.stockFilter = null;
     state.generatedHtml = "";
     updateUi();
     updatePreview();
@@ -962,21 +1020,29 @@ function rebuildProducts(options = {}) {
   const missing = inspectColumns(state.columns);
   if (missing.length) {
     state.products = [];
+    state.stockFilter = null;
     state.generatedHtml = "";
     updateUi();
     updatePreview();
     if (!options.quiet) setStatus(`Colonne mancanti: ${missing.join(", ")}.`, true);
     return;
   }
+  const stockFilter = buildStockFilter(state.rows, state.columns, els.storeSelect.value);
+  state.stockFilter = stockFilter;
   state.products = prepareProducts(state.rows, {
     descending: els.orderSelect.value === "desc",
     showDiscountPercent: els.discountPercent.checked,
+    stockFilter,
   });
   state.generatedHtml = "";
   updateUi();
   updatePreview();
-  if (hadGenerated) setStatus("Modifiche non generate: premi Genera HTML prima di stampare o scaricare.");
-  else if (!options.quiet) setStatus(`Anteprima aggiornata: ${state.products.length} prodotti.`);
+  const stockText = stockFilterStatusText(stockFilter);
+  if (hadGenerated) {
+    setStatus(`Modifiche non generate: premi Genera HTML prima di stampare o scaricare.${stockText ? ` ${stockText}` : ""}`);
+  } else if (!options.quiet) {
+    setStatus(`Anteprima aggiornata: ${state.products.length} prodotti.${stockText ? ` ${stockText}` : ""}`);
+  }
 }
 
 async function loadLogo(side, file) {
@@ -1179,6 +1245,30 @@ function downloadGeneratedHtml() {
   downloadBlob(outputFileName(), state.generatedHtml, "text/html;charset=utf-8");
 }
 
+function downloadExcludedProducts() {
+  const filter = state.stockFilter;
+  if (!filter?.active || !filter.excludedTitles?.length) {
+    setStatus("Nessun prodotto escluso da scaricare.", true);
+    return;
+  }
+
+  const lines = [
+    "Prodotti esclusi per giacenza",
+    `Negozio: ${filter.storeLabel}`,
+    `Colonna: ${filter.column}`,
+    "",
+    ...filter.excludedTitles,
+    "",
+  ];
+  const fileBase = excelBaseFileName();
+  const storeSlug = slugFilePart(filter.storeLabel) || "negozio";
+  downloadBlob(
+    `${fileBase}_prodotti_esclusi_${storeSlug}.txt`,
+    lines.join("\r\n"),
+    "text/plain;charset=utf-8",
+  );
+}
+
 function downloadTemplate() {
   try {
     requireSheetJs();
@@ -1247,11 +1337,15 @@ function outputFileName() {
       : (titleSlug || "cartellino_manuale");
     return `${base}${els.logoOnly.checked ? "_A6_solo_loghi" : "_A6"}.html`;
   }
-  const base = (state.fileName || "cartellini")
+  const base = excelBaseFileName();
+  return `${base}${els.logoOnly.checked ? "_A6_solo_loghi" : "_A6"}.html`;
+}
+
+function excelBaseFileName() {
+  return (state.fileName || "cartellini")
     .replace(/\.(xlsx|xls)$/i, "")
     .replace(/[\\/:*?"<>|]+/g, "_")
     .trim() || "cartellini";
-  return `${base}${els.logoOnly.checked ? "_A6_solo_loghi" : "_A6"}.html`;
 }
 
 function updateUi() {
@@ -1279,6 +1373,47 @@ function updateUi() {
   } else {
     els.fileMeta.textContent = "Colonne richieste: Title, Variant Price";
   }
+  updateStockFilterPanel();
+}
+
+function updateStockFilterPanel() {
+  if (!els.stockFilterPanel) return;
+  const filter = state.stockFilter;
+  const visible = state.sourceMode === "excel" && Boolean(filter?.requested);
+  els.stockFilterPanel.classList.toggle("is-hidden", !visible);
+  if (!visible) {
+    els.stockFilterSummary.textContent = "";
+    els.stockFilterColumn.textContent = "";
+    els.stockExcludedList.replaceChildren();
+    els.downloadExcludedBtn.disabled = true;
+    return;
+  }
+
+  if (!filter.active) {
+    els.stockFilterSummary.textContent = `Giacenza ${filter.storeLabel}: filtro non applicato`;
+    els.stockFilterColumn.textContent = filter.hasInventoryColumns
+      ? "Colonna giacenza non trovata per questo negozio."
+      : "Questo Excel non contiene colonne Inventory Available.";
+    els.stockExcludedList.replaceChildren();
+    els.downloadExcludedBtn.disabled = true;
+    return;
+  }
+
+  els.stockFilterSummary.textContent = `${filter.storeLabel}: ${filter.availableProducts} stampabili, ${filter.excludedProducts} esclusi`;
+  els.stockFilterColumn.textContent = `Colonna giacenza: ${filter.column}`;
+  const excludedTitles = filter.excludedTitles || [];
+  if (excludedTitles.length) {
+    els.stockExcludedList.replaceChildren(...excludedTitles.map((title) => {
+      const item = document.createElement("li");
+      item.textContent = title;
+      return item;
+    }));
+  } else {
+    const item = document.createElement("li");
+    item.textContent = "Nessun prodotto escluso.";
+    els.stockExcludedList.replaceChildren(item);
+  }
+  els.downloadExcludedBtn.disabled = !excludedTitles.length;
 }
 
 function updatePreview() {
@@ -1384,12 +1519,14 @@ function setStatus(message, isError = false) {
 function prepareProducts(rows, options, columns = state.columns) {
   const lowerMap = normalizeColumns(rows, columns);
   const ignoredOptionsByTitle = detectMonogramOptionColumns(rows, lowerMap);
+  const allowedTitles = options.stockFilter?.active ? options.stockFilter.availableTitles : null;
   const products = new Map();
   const dedupe = new Map();
 
   rows.forEach((row) => {
     const title = cleanTitle(getValue(row, "Title", lowerMap));
     if (!title) return;
+    if (allowedTitles && !allowedTitles.has(title)) return;
 
     const opt1 = getValue(row, "Option1 Value", lowerMap);
     const opt2 = getValue(row, "Option2 Value", lowerMap);
@@ -1478,6 +1615,75 @@ function prepareProducts(rows, options, columns = state.columns) {
   });
 
   return Array.from(products.values()).filter((product) => product.variants.length);
+}
+
+function buildStockFilter(rows, columns, storeCode) {
+  const store = STORE_INVENTORY_FILTERS[storeCode];
+  if (!store) {
+    return { active: false, requested: false, availableTitles: null };
+  }
+
+  const lowerMap = normalizeColumns(rows, columns);
+  const inventoryColumns = inventoryColumnNames(columns, lowerMap);
+  const column = findInventoryColumn(inventoryColumns, store.hints);
+  if (!column) {
+    return {
+      active: false,
+      requested: true,
+      storeLabel: store.label,
+      hasInventoryColumns: inventoryColumns.length > 0,
+      availableTitles: null,
+    };
+  }
+
+  const allTitles = new Set();
+  const availableTitles = new Set();
+  rows.forEach((row) => {
+    const title = cleanTitle(getValue(row, "Title", lowerMap));
+    if (!title) return;
+    allTitles.add(title);
+    const quantity = toFloat(getValue(row, column, lowerMap));
+    if (quantity !== null && quantity >= 1) {
+      availableTitles.add(title);
+    }
+  });
+  const excludedTitles = Array.from(allTitles).filter((title) => !availableTitles.has(title));
+
+  return {
+    active: true,
+    requested: true,
+    storeLabel: store.label,
+    column,
+    availableTitles,
+    excludedTitles,
+    totalProducts: allTitles.size,
+    availableProducts: availableTitles.size,
+    excludedProducts: excludedTitles.length,
+  };
+}
+
+function inventoryColumnNames(columns, lowerMap) {
+  const names = columns.length ? columns : Array.from(lowerMap.values());
+  return names.filter((column) => normalizeSearchText(column).includes("inventory available"));
+}
+
+function findInventoryColumn(columns, hints) {
+  const normalizedHints = hints.map((hint) => normalizeSearchText(hint));
+  return columns.find((column) => {
+    const normalizedColumn = normalizeSearchText(column);
+    return normalizedHints.some((hint) => normalizedColumn.includes(hint));
+  }) || null;
+}
+
+function stockFilterStatusText(filter) {
+  if (!filter?.requested) return "";
+  if (filter.active) {
+    return `Giacenza ${filter.storeLabel}: esclusi ${filter.excludedProducts} prodotti senza disponibilita.`;
+  }
+  if (filter.hasInventoryColumns) {
+    return `Giacenza ${filter.storeLabel}: colonna non trovata, filtro non applicato.`;
+  }
+  return "";
 }
 
 function normalizeColumns(rows, explicitColumns) {
