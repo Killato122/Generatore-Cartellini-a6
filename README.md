@@ -1,32 +1,70 @@
-# Web app
+# Generatore Cartellini A6
 
-Questa cartella contiene la parte che gira nel browser.
+Piccola web app per creare cartellini A6 stampabili partendo da un file Excel.
 
-Apri `index.html`, carica un Excel e scegli il negozio. L'app prepara i
-cartellini A6, mostra l'anteprima e permette di stampare o scaricare l'HTML.
+Funziona direttamente nel browser: carichi l'Excel, scegli il negozio, controlli
+l'anteprima e poi generi il file HTML da stampare o scaricare. Non serve un
+server e i file Excel restano sul computer: vengono letti solo dal browser.
 
-La lettura degli Excel e' fatta con la libreria locale `vendor/xlsx.full.min.js`,
-quindi non serve installare nulla e non viene caricato nessun file su server
-esterni.
+## Aprire l'app
 
-## Excel
+Versione online:
 
-Le colonne principali sono:
+```text
+https://killato122.github.io/Generatore-Cartellini-a6/
+```
 
-- `Title`
-- `Option1 Value`
-- `Option2 Value`
-- `Option3 Value`
-- `Variant Price`
-- `Variant Compare At Price`
+Versione locale:
 
-Se sono presenti colonne `Inventory Available`, il programma usa quella del
-negozio selezionato per decidere quali prodotti stampare.
+```text
+webapp/index.html
+```
 
-## Giacenze
+## Cosa fa
 
-Per Volta, Piave e Belfiore il cartellino viene stampato solo se almeno una
-variante del prodotto ha giacenza `1` o superiore nel negozio scelto.
+- legge file Excel in formato `.xlsx` o `.xls`
+- crea cartellini A6 con titolo, varianti e prezzi
+- permette di scegliere il negozio: Volta, Piave o Belfiore
+- applica automaticamente il bollino del negozio scelto
+- supporta i cartellini saldi
+- supporta il bollino Black Friday attivabile dalle opzioni
+- mostra l'anteprima prima della stampa
+- permette anche l'inserimento manuale senza Excel
 
-I prodotti esclusi vengono mostrati nella pagina e possono essere scaricati in
-un file `.txt`.
+## Filtro giacenza
+
+Se l'Excel contiene le colonne `Inventory Available`, l'app filtra i cartellini
+in base al negozio selezionato.
+
+Esempio: se scegli `Belfiore`, viene usata la colonna di giacenza Belfiore. Un
+prodotto viene stampato se almeno una sua variante ha quantita `1` o superiore.
+Se tutte le varianti del prodotto sono a `0`, il cartellino viene escluso.
+
+Dopo il caricamento dell'Excel viene mostrata anche la colonna giacenza usata e
+la lista dei prodotti esclusi. La lista puo' essere scaricata in formato `.txt`.
+
+## Pubblicazione su GitHub Pages
+
+Se stai caricando i file manualmente da questo PC:
+
+1. apri la cartella `DA_CARICARE_GITHUB_PAGES`
+2. carica nella repository tutto quello che trovi dentro, non la cartella intera
+3. vai su `Settings > Pages`
+4. scegli `Deploy from a branch`
+5. seleziona branch `main` e cartella `/(root)`
+6. salva e aspetta qualche minuto
+
+Quando GitHub Pages ha finito, l'app sara' disponibile all'indirizzo:
+
+```text
+https://killato122.github.io/Generatore-Cartellini-a6/
+```
+
+## File principali
+
+- `index.html` apre automaticamente la web app
+- `webapp/index.html` contiene l'interfaccia
+- `webapp/app.js` contiene la logica
+- `webapp/styles.css` contiene lo stile
+- `assets/images/` contiene loghi e bollini
+- `webapp/vendor/xlsx.full.min.js` permette di leggere gli Excel nel browser

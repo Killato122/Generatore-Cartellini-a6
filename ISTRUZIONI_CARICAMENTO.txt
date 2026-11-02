@@ -1,0 +1,23 @@
+﻿COSA CARICARE SU GITHUB
+
+Carica tutto il contenuto di questa cartella nella root della repository GitHub:
+Killato122/Generatore-Cartellini-a6
+
+Devono finire nella root della repo questi elementi:
+- .nojekyll
+- index.html
+- README.md
+- .gitignore
+- webapp/
+- assets/images/
+
+Dopo il caricamento, attiva GitHub Pages:
+1. Vai nella repository su GitHub.
+2. Apri Settings > Pages.
+3. In Build and deployment scegli Deploy from a branch.
+4. Branch: main
+5. Folder: /(root)
+6. Salva.
+
+URL previsto:
+https://killato122.github.io/Generatore-Cartellini-a6/

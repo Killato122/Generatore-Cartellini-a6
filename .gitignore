@@ -1,0 +1,34 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# PyInstaller outputs
+build/
+dist/
+*.manifest
+
+# Generated cartellini output
+cartellini_A6_output/
+*.html
+!index.html
+!webapp/index.html
+*.log
+
+# Local Excel input/sample files
+data/*.xlsx
+data/*.xls
+
+# Local tool/user settings
+.claude/
+cartellini_a6_config.json
+cartellini_gui_settings.json
+backups/
+
+# Office lock/temp files
+~$*
